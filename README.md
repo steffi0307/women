@@ -86,61 +86,54 @@ women-safety-app
       }
       useEffect(()=>{localStorage.setItem("ps_contacts",JSON.stringify(contacts));},[contacts]);
 
-function getLocation(callback) {
-  if (!navigator.geolocation) {
-    alert("❌ Geolocation not supported in this browser");
-    return;
-  }
-
-  navigator.geolocation.getCurrentPosition(
-    (pos) => {
-      callback(null, pos.coords);
-    },
-    (err) => {
-      let msg = "⚠️ Location failed: ";
-      switch(err.code) {
-        case err.PERMISSION_DENIED:
-          msg += "Permission denied. Please allow location access.";
-          break;
-        case err.POSITION_UNAVAILABLE:
-          msg += "Location unavailable (check GPS or network).";
-          break;
-        case err.TIMEOUT:
-          msg += "Timed out while getting location.";
-          break;
-        default:
-          msg += "Unknown error.";
+    function getLocation(callback) {
+      if (!navigator.geolocation) {
+        alert("❌ Geolocation not supported");
+        return;
       }
-      alert(msg);
-    },
-    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-  );
-}
+      navigator.geolocation.getCurrentPosition(
+        pos => callback(null, pos.coords),
+        err => {
+          let msg = "⚠️ Location failed: ";
+          switch(err.code) {
+            case err.PERMISSION_DENIED: msg += "Permission denied"; break;
+            case err.POSITION_UNAVAILABLE: msg += "Location unavailable"; break;
+            case err.TIMEOUT: msg += "Timeout"; break;
+            default: msg += "Unknown error";
+          }
+          alert(msg);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    }
 
-async function sendEmergencyAlert() {
-  getLocation(async (err, coords) => {
-    if (err) return; // already handled
-    const { latitude, longitude } = coords;
-    const mapsLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
-    const message = `🚨 EMERGENCY! I need help. My location: ${mapsLink}`;
-    try { await navigator.clipboard.writeText(message); } catch(e){}
-    window.open(`sms:1234567890?body=${encodeURIComponent(message)}`);
-    window.open(`https://wa.me/1234567890?text=${encodeURIComponent(message)}`, "_blank");
-  });
-}
+    function sendEmergencyAlert() {
+      getLocation((err, coords) => {
+        if (err) return;
+        const mapsLink = `https://www.google.com/maps?q=${coords.latitude},${coords.longitude}`;
+        const message = `🚨 EMERGENCY! I need help. My location: ${mapsLink}`;
 
-async function sendSafeCheckIn() {
-  getLocation(async (err, coords) => {
-    if (err) return; // already handled
-    const { latitude, longitude } = coords;
-    const mapsLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
-    const message = `✅ I reached safely! My location: ${mapsLink}`;
-    try { await navigator.clipboard.writeText(message); } catch(e){}
-    window.open(`sms:1234567890?body=${encodeURIComponent(message)}`);
-    window.open(`https://wa.me/1234567890?text=${encodeURIComponent(message)}`, "_blank");
-  });
-}
+        // Send to all contacts
+        contacts.forEach(num => {
+          window.open(`sms:${num}?body=${encodeURIComponent(message)}`);
+          window.open(`https://wa.me/${num.replace('+','')}?text=${encodeURIComponent(message)}`, "_blank");
+        });
+      });
+    }
 
+    function sendSafeCheckIn() {
+      getLocation((err, coords) => {
+        if (err) return;
+        const mapsLink = `https://www.google.com/maps?q=${coords.latitude},${coords.longitude}`;
+        const message = `✅ I reached safely! My location: ${mapsLink}`;
+
+        contacts.forEach(num => {
+          window.open(`sms:${num}?body=${encodeURIComponent(message)}`);
+          window.open(`https://wa.me/${num.replace('+','')}?text=${encodeURIComponent(message)}`, "_blank");
+        });
+      });
+    }
+ 
 
          return (
         <div className="backdrop-blur-xl bg-white/20 rounded-3xl shadow-2xl p-8 max-w-6xl w-full text-white">
@@ -256,3 +249,4 @@ async function sendSafeCheckIn() {
   </script>
 </body>
 </html>
+
