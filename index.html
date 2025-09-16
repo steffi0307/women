@@ -60,6 +60,7 @@
         sirenOscRef.current={osc,interval};
         sirenPlayingRef.current=true;
       }
+
       function stopSiren(){
         if(!sirenPlayingRef.current) return;
         const {osc,interval}=sirenOscRef.current||{};
@@ -69,6 +70,7 @@
         sirenOscRef.current=null;
         sirenPlayingRef.current=false;
       }
+
       function toggleSiren(){
         sirenPlayingRef.current?stopSiren():startSiren();
       }
@@ -79,85 +81,57 @@
         setContacts(p=>[c,...p]);
         setNewName("");setNewNumber("");
       }
+
       function removeContact(id){
         setContacts(p=>p.filter(c=>c.id!==id));
       }
+
       useEffect(()=>{localStorage.setItem("ps_contacts",JSON.stringify(contacts));},[contacts]);
 
-function getLocation(callback) {
-  if (!navigator.geolocation) {
-    alert("❌ Geolocation not supported in this browser");
-    return;
-  }
+      // Mobile-friendly Emergency Alert
+      function sendEmergencyAlert(contactNumber){
+        if(!contactNumber){alert("Add an emergency contact first");return;}
+        if(!navigator.geolocation){alert("Geolocation not supported");return;}
+        navigator.geolocation.getCurrentPosition(pos=>{
+          const {latitude,longitude}=pos.coords;
+          const mapsLink=`https://www.google.com/maps?q=${latitude},${longitude}`;
+          const message=`🚨 EMERGENCY! I need help. My location: ${mapsLink}`;
 
-  navigator.geolocation.getCurrentPosition(
-    (pos) => {
-      callback(null, pos.coords);
-    },
-    (err) => {
-      let msg = "⚠️ Location failed: ";
-      switch(err.code) {
-        case err.PERMISSION_DENIED:
-          msg += "Permission denied. Please allow location access.";
-          break;
-        case err.POSITION_UNAVAILABLE:
-          msg += "Location unavailable (check GPS or network).";
-          break;
-        case err.TIMEOUT:
-          msg += "Timed out while getting location.";
-          break;
-        default:
-          msg += "Unknown error.";
+          // SMS
+          window.location.href = `sms:${contactNumber}?body=${encodeURIComponent(message)}`;
+          // WhatsApp
+          window.open(`https://wa.me/${contactNumber.replace('+','')}?text=${encodeURIComponent(message)}`, "_blank");
+        },()=>alert("Failed to fetch location"));
       }
-      alert(msg);
-    },
-    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-  );
-}
 
-async function sendEmergencyAlert() {
-  getLocation(async (err, coords) => {
-    if (err) return; // already handled
-    const { latitude, longitude } = coords;
-    const mapsLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
-    const message = `🚨 EMERGENCY! I need help. My location: ${mapsLink}`;
-    try { await navigator.clipboard.writeText(message); } catch(e){}
-    window.open(`sms:1234567890?body=${encodeURIComponent(message)}`);
-    window.open(`https://wa.me/1234567890?text=${encodeURIComponent(message)}`, "_blank");
-  });
-}
+      function sendSafeCheckIn(contactNumber){
+        if(!contactNumber){alert("Add an emergency contact first");return;}
+        if(!navigator.geolocation){alert("Geolocation not supported");return;}
+        navigator.geolocation.getCurrentPosition(pos=>{
+          const {latitude,longitude}=pos.coords;
+          const mapsLink=`https://www.google.com/maps?q=${latitude},${longitude}`;
+          const message=`✅ I reached safely! My location: ${mapsLink}`;
 
-async function sendSafeCheckIn() {
-  getLocation(async (err, coords) => {
-    if (err) return; // already handled
-    const { latitude, longitude } = coords;
-    const mapsLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
-    const message = `✅ I reached safely! My location: ${mapsLink}`;
-    try { await navigator.clipboard.writeText(message); } catch(e){}
-    window.open(`sms:1234567890?body=${encodeURIComponent(message)}`);
-    window.open(`https://wa.me/1234567890?text=${encodeURIComponent(message)}`, "_blank");
-  });
-}
+          // SMS
+          window.location.href = `sms:${contactNumber}?body=${encodeURIComponent(message)}`;
+          // WhatsApp
+          window.open(`https://wa.me/${contactNumber.replace('+','')}?text=${encodeURIComponent(message)}`, "_blank");
+        },()=>alert("Failed to fetch location"));
+      }
 
-
-         return (
+      return (
         <div className="backdrop-blur-xl bg-white/20 rounded-3xl shadow-2xl p-8 max-w-6xl w-full text-white">
-          {/* Header */}
           <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
-          
-          <h1 className="text-3xl font-extrabold tracking-tight">💜 SHEcurity – Bus Safety</h1>
-          <p className="text-sm text-white/80 mt-1">Women’s Safety First ✨</p>
-        
-              <div className="flex gap-3">
+            <h1 className="text-3xl font-extrabold tracking-tight">💜 SHEcurity – Bus Safety</h1>
+            <p className="text-sm text-white/80 mt-1">Women’s Safety First ✨</p>
+            <div className="flex gap-3">
               <button onClick={toggleSiren} className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 font-medium transition">🔊 Siren</button>
-              <button onClick={sendEmergencyAlert} className="px-5 py-2.5 rounded-xl bg-yellow-400 text-black hover:bg-yellow-300 font-medium transition">⚠️ Alert</button>
-              <button onClick={sendSafeCheckIn} className="px-5 py-2.5 rounded-xl bg-green-400 text-black hover:bg-green-300 font-medium transition">✅ Reached</button>
+              <button onClick={()=>sendEmergencyAlert(contacts[0]?.number)} className="px-5 py-2.5 rounded-xl bg-yellow-400 text-black hover:bg-yellow-300 font-medium transition">⚠️ Alert</button>
+              <button onClick={()=>sendSafeCheckIn(contacts[0]?.number)} className="px-5 py-2.5 rounded-xl bg-green-400 text-black hover:bg-green-300 font-medium transition">✅ Reached</button>
             </div>
           </header>
 
-          {/* Main Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Left: Stops & Contacts */}
             <div className="space-y-6">
               <section>
                 <h2 className="font-semibold text-xl mb-3">🚏 Stops</h2>
@@ -193,7 +167,6 @@ async function sendSafeCheckIn() {
               </section>
             </div>
 
-            {/* Right: Safe Routes + Safety Locations */}
             <div className="space-y-6">
               <section>
                 <h2 className="font-semibold text-xl mb-3">🛡️ Safe Routes</h2>
@@ -242,9 +215,8 @@ async function sendSafeCheckIn() {
             </div>
           </div>
 
-          {/* Footer */}
           <footer className="mt-8 pt-4 border-t border-white/20 text-sm text-white/80 text-center">
-            ⚡ Note: SMS/WhatsApp sending depends on device support. This demo copies text & opens apps.
+            ⚡ Note: SMS/WhatsApp sending depends on device support. This will open apps with your message.
           </footer>
         </div>
       );
